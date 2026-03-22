@@ -9,9 +9,9 @@ st.set_page_config(page_title="Brain Tumor Classifier", page_icon="🧠")
 @st.cache_resource
 def load_model():
     data = joblib.load("brain_tumor_model.pkl")
-    return data["model"], data["scaler"], data["categories"], data["img_size"]
+    return data["model"], data["categories"], data["img_size"]
 
-model, scaler, categories, img_size = load_model()
+model, categories, img_size = load_model()
 
 st.title("🧠 Brain Tumor MRI Classifier")
 st.markdown("Upload a brain MRI scan and the AI will classify it.")
@@ -33,16 +33,13 @@ if uploaded_file is not None:
     st.image(image, caption="Uploaded MRI Scan", use_column_width=True)
 
     with st.spinner("🔍 Analyzing..."):
-
-        # Preprocess exactly same as training
         img = np.array(image.convert("L"))           # Grayscale
-        img = cv2.resize(img, (img_size, img_size))  # Resize to 64x64
+        img = cv2.resize(img, (img_size, img_size))  # Resize 64x64
         img = img / 255.0                            # Normalize
-        img = img.reshape(1, -1)                     # Flatten → 4096 features
+        img = img.reshape(1, -1)                     # Flatten
 
-        # Scale then predict (NO PCA!)
-        img_scaled = scaler.transform(img)
-        prediction = model.predict(img_scaled)[0]
+        # Predict directly (Random Forest needs no scaler)
+        prediction = model.predict(img)[0]
         class_name = categories[prediction]
 
     st.markdown("---")
