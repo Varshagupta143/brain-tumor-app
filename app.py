@@ -9,9 +9,9 @@ st.set_page_config(page_title="Brain Tumor Classifier", page_icon="🧠")
 @st.cache_resource
 def load_model():
     data = joblib.load("brain_tumor_model.pkl")
-    return data["model"], data["scaler"], data["pca"], data["categories"], data["img_size"]
+    return data["model"], data["scaler"], data["categories"], data["img_size"]
 
-model, scaler, pca, categories, img_size = load_model()
+model, scaler, categories, img_size = load_model()
 
 st.title("🧠 Brain Tumor MRI Classifier")
 st.markdown("Upload a brain MRI scan and the AI will classify it.")
@@ -38,12 +38,11 @@ if uploaded_file is not None:
         img = np.array(image.convert("L"))           # Grayscale
         img = cv2.resize(img, (img_size, img_size))  # Resize to 64x64
         img = img / 255.0                            # Normalize
-        img = img.reshape(1, -1)                     # Flatten
+        img = img.reshape(1, -1)                     # Flatten → 4096 features
 
-        # Scale first, then PCA, then predict
+        # Scale then predict (NO PCA!)
         img_scaled = scaler.transform(img)
-        img_pca    = pca.transform(img_scaled)
-        prediction = model.predict(img_pca)[0]
+        prediction = model.predict(img_scaled)[0]
         class_name = categories[prediction]
 
     st.markdown("---")
@@ -55,4 +54,3 @@ if uploaded_file is not None:
         st.error(f"⚠️ Tumor Detected: **{class_name.upper()}**")
 
     st.caption("⚠️ For educational purposes only. Consult a doctor for real diagnosis.")
-
