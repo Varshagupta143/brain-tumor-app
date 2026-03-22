@@ -33,12 +33,14 @@ if uploaded_file is not None:
     st.image(image, caption="Uploaded MRI Scan", use_column_width=True)
 
     with st.spinner("🔍 Analyzing..."):
-        img = np.array(image.convert("L"))           # Grayscale
-        img = cv2.resize(img, (img_size, img_size))  # Resize 64x64
-        img = img / 255.0                            # Normalize
-        img = img.reshape(1, -1)                     # Flatten
 
-        # Predict directly (Random Forest needs no scaler)
+        # ── Preprocessing (EXACTLY same as training) ──
+        img = np.array(image.convert("L"))           # Step 1: Grayscale
+        img = cv2.resize(img, (img_size, img_size))  # Step 2: Resize 64x64
+        img = img / 255.0                            # Step 3: Normalize
+        img = img.reshape(1, -1)                     # Step 4: Flatten → 4096
+
+        # ── Predict directly (no scaler, no PCA) ──
         prediction = model.predict(img)[0]
         class_name = categories[prediction]
 
