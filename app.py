@@ -268,26 +268,31 @@ def predict(img_array, model_data):
 
     return pred_label, proba, classes, processed
 
-def generate_heatmap(img_array, pred_label, processed_img):
-    """Generate a GradCAM-style attention heatmap using intensity analysis."""
-    h, w = processed_img.shape
 
-    # Simulate attention based on image gradient + intensity
-    sobelx = cv2.Sobel(processed_img, cv2.CV_64F, 1, 0, ksize=5)
-    sobely = cv2.Sobel(processed_img, cv2.CV_64F, 0, 1, ksize=5)
-    gradient_mag = np.sqrt(sobelx**2 + sobely**2)
-
-    # Normalize
-    heatmap = (gradient_mag - gradient_mag.min()) / (gradient_mag.max() - gradient_mag.min() + 1e-8)
-
-    # Blur for smoother heatmap
+    
+    def generate_heatmap(img_array, pred_label, processed_img):
+    
+    # Step 1: Blur to reduce noise
+    blurred = cv2.GaussianBlur(processed_img, (11, 11), 0)
+    
+    # Step 2: Otsu thresholding — finds bright regions automatically
+    _, thresh = cv2.threshold(blurred, 0, 255, 
+                              cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    # Step 3: Clean up small noise
+    kernel = np.ones((7, 7), np.uint8)
+    cleaned = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    cleaned = cv2.morphologyEx(cleaned, cv2.MORPH_OPEN, kernel)
+    
+    # Step 4: Find all contours (tumor regions)
+    contours, _ = cv2.findContours(cleaned, 
+                                   cv2.RETR_EXTERNAL, 
+                                   cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Step 5: Make heatmap from cleaned mask
+    heatmap = cleaned.astype(float) / 255.0
     heatmap = cv2.GaussianBlur(heatmap, (15, 15), 0)
-
-    # Find ROI (region of interest — brightest area)
-    threshold = np.percentile(heatmap, 80)
-    roi_mask = (heatmap > threshold).astype(np.uint8)
-    contours, _ = cv2.findContours(roi_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
+    
     return heatmap, contours
 
 def plot_analysis(img_array, pred_label, proba, classes, processed_img):
